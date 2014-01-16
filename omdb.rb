@@ -3,6 +3,15 @@ require 'sinatra/reloader'
 require 'typhoeus'
 require 'json'
 
+def imdb_pull(search_key, search_val)
+
+  result = Typhoeus.get("http://www.omdbapi.com/", :params => {search_key => search_val})
+  result = JSON.parse(result.body)
+  result
+
+end
+
+
 get '/' do
   html = %q(
   <html><head><title>Movie Search</title></head><body>
@@ -19,23 +28,23 @@ post '/result' do
   search_str = params[:movie]
   
   # Make a request to the omdb api here!
-  response = Typhoeus.get("http://www.omdbapi.com/", :params => {:s => search_str})
-  result = JSON.parse(response.body)
-
+  result = imdb_pull(:s, search_str)
+  
   # Modify the html output so that a list of movies is provided.
   html_str = "<html><head><title>Movie Search Results</title></head><body><h1>Movie Results</h1>\n<ul>"
 
   result["Search"].each do |movie|
-    html_str += "<li>#{movie["Title"]} - #{movie["Year"]}</li>"
+    html_str += "<li><a href = \"../poster/#{movie["imdbID"]}\">#{movie["Title"]} - #{movie["Year"]}</a></li>"
   end
     html_str += "</ul></body></html>"
-
 end
 
 get '/poster/:imdb' do |imdb_id|
-  # Make another api call here to get the url of the poster.
+  
+  result = imdb_pull(:i, imdb_id)
   html_str = "<html><head><title>Movie Poster</title></head><body><h1>Movie Poster</h1>\n"
-  html_str = "<h3>#{imdb_id}</h3>"
+  html_str += "<h3>#{result["Title"]}</h3>"
+  html_str += "<img src=\" #{result["Poster"]} \"><br />"
   html_str += '<br /><a href="/">New Search</a></body></html>'
 
 end
